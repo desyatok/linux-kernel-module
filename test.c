@@ -3,9 +3,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-int main() {
+int main()
+{
 	int dev = open("/dev/aes_p", O_RDONLY);
-	if (dev == -1) {
+	if (dev == -1) 
+	{
 		printf("No success\n");
 		return -1;
 	}

@@ -5,6 +5,8 @@
 #include <linux/atomic.h>
 #include <linux/cdev.h>
 #include <linux/fs.h>
+#include "library.h"
+
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("desyatok");
@@ -36,7 +38,6 @@ static struct file_operations fops = {
 
 static int __init my_init(void) {
 	major = register_chrdev(0, DEVICE_NAME, &fops);
-	
 	if (major < 0) {
 		pr_alert("Registering a device failed with %d\n", major);
 		return major;

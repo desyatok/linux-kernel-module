@@ -1,4 +1,5 @@
-obj-m += driver.o
+obj-m += mydriver.o
+mydriver-objs := driver.o library.o
 
 PWD := $(CURDIR)
 
