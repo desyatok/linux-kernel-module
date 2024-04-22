@@ -13,15 +13,17 @@ MODULE_AUTHOR("desyatok");
 MODULE_DESCRIPTION("A sample driver");
 
 #define SUCCESS 0
-#define FAILURE -1
-#define DEVICE_NAME "aes_p"
+#define DEVICE_NAME "myrandom"
+#define KEY_LEN 256
 
 static int device_open(struct inode *, struct file *);
 static int device_release(struct inode *, struct file *);
+//static ssize_t device_write(struct file *, const char __user *, size_t, loff_t *);
 
 static int major;
 
-enum {
+static enum
+{
 	DEV_NOT_USED = 0,
 	DEV_EXCLUSIVE_OPEN = 1,
 };
@@ -30,15 +32,19 @@ static atomic_t already_open = ATOMIC_INIT(DEV_NOT_USED);
 
 static struct class *cls;
 
-static struct file_operations fops = {
+static struct file_operations fops = 
+{
 	.owner = THIS_MODULE,
 	.open = device_open,
 	.release = device_release,
+//	.write = device_write,
 };
 
-static int __init my_init(void) {
+static int __init my_init(void) 
+{
 	major = register_chrdev(0, DEVICE_NAME, &fops);
-	if (major < 0) {
+	if (major < 0) 
+	{
 		pr_alert("Registering a device failed with %d\n", major);
 		return major;
 	}
@@ -53,15 +59,18 @@ static int __init my_init(void) {
 	return SUCCESS;
 }
 
-static void __exit my_exit(void) {
+static void __exit my_exit(void) 
+{
 	device_destroy(cls, MKDEV(major, 0));
 	class_destroy(cls);
 	unregister_chrdev(major, DEVICE_NAME);
 	pr_info("Device was successfully destroyed and unregistered\n");
 }
 
-static int device_open(struct inode *inode, struct file *file) {
-	if (atomic_cmpxchg(&already_open, DEV_NOT_USED, DEV_EXCLUSIVE_OPEN)) {
+static int device_open(struct inode *inode, struct file *file) 
+{
+	if (atomic_cmpxchg(&already_open, DEV_NOT_USED, DEV_EXCLUSIVE_OPEN)) 
+	{
 		return -EBUSY;
 	}
 
@@ -71,10 +80,11 @@ static int device_open(struct inode *inode, struct file *file) {
 	return SUCCESS;
 }
 
-static int device_release(struct inode *inode, struct file *file) {
+static int device_release(struct inode *inode, struct file *file) 
+{
 	atomic_set(&already_open, DEV_NOT_USED);
 	module_put(THIS_MODULE);
-	pr_info("Successfully closed a device");
+	pr_info("Successfully closed a device\n");
 	return SUCCESS;
 }
 
