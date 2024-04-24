@@ -3,21 +3,37 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <fcntl.h>
+#include <stdio.h>
 
-int main()
+int main(void)
 {
-	FILE *dev = fopen("/dev/myrandom", "w");
-	if (dev == NULL)
-	{
-		printf("No success\n");
-		return -1;
-	}
-    char *buf = "\x2\x17\x69\x6f\x77\x33";
+	int dev = open("/dev/myrandom", O_RDWR, 0);
+	if (dev == -1)
+    {
+        printf("No success\n");
+        return -1;
+    }
+    int n = 20000;
+    unsigned char buff[] = {4, 17, 133, 120, 117, 201, 45, 12, 240, 5};
+    size_t written = write(dev,buff,10);
+    printf("written: %lu\n", written - 1);
+    unsigned char res[2 * n];
+    size_t n_read = read(dev,res, n);
 
-    //int written = fprintf(dev,"%s", buf);
-    size_t written = fwrite(buf, 1,strlen(buf) + 1,dev);
-    printf("successfully wrote %ld\n", written);
-    fclose(dev);
+    if (n_read != n)
+    {
+        printf("couldn't read");
+        return -1;
+    }
+
+    for (int i = 0; i < n; i++)
+    {
+        printf("%d ", res[i]);
+    }
+
+    printf("\n");
+    close(dev);
 	return 0;
 }
 

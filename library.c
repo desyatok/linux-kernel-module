@@ -140,6 +140,7 @@ FieldMember *uint32_to_ff(uint32_t elem)
 
 FieldMember *fieldMemberInit(Field *field, const uint8_t *poly, uint8_t poly_deg)
 {
+    if (poly_deg == 255) return getZero(field);
     if (field == NULL || poly == NULL || field->poly_deg <= poly_deg) return NULL;
     FieldMember *member = getZero(field);
     for (uint8_t i = 0; i < field->poly_deg; ++i)
@@ -243,7 +244,8 @@ static FieldMember *takeMod(const uint8_t *poly, uint8_t poly_deg, Field *field)
 FieldMember *ffMul(const FieldMember *left, const FieldMember *right)
 {
     if (left == NULL || right == NULL || !fieldsAreEqual(left->field, right->field)) return NULL;
-
+    FieldMember *nil = getZero(left->field);
+    if (fieldMembersAreEqual(left, nil) || fieldMembersAreEqual(right, nil)) return nil;
     uint8_t res_deg = left->field->poly_deg * 2 - 2;
     uint8_t *res_poly = (uint8_t *)kmalloc((res_deg + 1) * sizeof(uint8_t), GFP_KERNEL);
     memset(res_poly,0,(res_deg + 1));

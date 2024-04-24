@@ -34,6 +34,7 @@ static struct file_operations fops =
 	.open = device_open,
 	.release = device_release,
 	.write = device_write,
+	.read = device_read,
 };
 
 static int __init my_init(void) 
@@ -56,7 +57,7 @@ static int __init my_init(void)
 
 static void __exit my_exit(void) 
 {
-	generator_destroy(mygen);	
+	generator_destroy();	
 	device_destroy(cls, MKDEV(major, 0));
 	class_destroy(cls);
 	unregister_chrdev(major, DEVICE_NAME);
@@ -90,7 +91,7 @@ static ssize_t device_write(struct file *file, const char __user *buffer, size_t
 	if (mygen != NULL)
 	
 	{
-		return -EPERM;
+		generator_destroy();
 	}
 	int err = 0;
 	ssize_t bytes_written = 0;
@@ -185,7 +186,68 @@ static ssize_t device_write(struct file *file, const char __user *buffer, size_t
 	return bytes_written + 1;
 }
 
-static void generator_destroy(generator *mygen)
+static void generator_info(void)
+{
+	pr_info("generator values are:");
+	for (size_t i = 0; i < mygen->k; ++i)
+	{
+		pr_info("x[%lu] is %d", i, ff_to_uint8(mygen->x[i]));
+	}
+}
+
+// количество запрашиваемых псевдослучайных чисел равно count (????????)
+static ssize_t device_read(struct file *file, char __user *buffer, size_t count, loff_t *offset)
+{
+	if (mygen == NULL) return -EPERM;
+	if (count == 0) return -EINVAL;
+	ssize_t bytes_read = 0;
+	pr_info("%lu bytes to generate", count);
+	int err = 0;
+	for (size_t j = 0; j < count; ++j)
+	{
+		uint8_t byte = get_pseudorandom_byte();
+
+		err = put_user(byte, buffer++);
+		if (err != 0) return -EFAULT;
+		bytes_read++;
+		generator_info();
+	}
+	
+	return bytes_read;
+}
+
+static uint8_t get_pseudorandom_byte(void)
+{
+	uint8_t byte = 0;
+	FieldMember *sum = uint8_to_ff(0);
+	for (size_t i = 0; i < mygen->k; ++i)
+	{
+		FieldMember *tmp = sum;
+		FieldMember *product = ffMul(mygen->a[i], mygen->x[i]);
+		sum = ffAdd(sum, product);
+		freeFieldMember(tmp, 0);
+		freeFieldMember(product, 0);
+	}
+	FieldMember *tmp = sum;
+	sum = ffAdd(sum, mygen->c);	
+	freeFieldMember(tmp, 0);
+	
+	byte = ff_to_uint8(sum);
+	generator_shift_left(sum);
+	return byte;
+}
+
+static void generator_shift_left(FieldMember *new_elem)
+{
+	freeFieldMember(mygen->x[0], 1);
+	for (size_t i = 0; i < mygen->k - 1; ++i)
+	{
+		mygen->x[i] = mygen->x[i + 1];
+	}
+	mygen->x[mygen->k - 1] = new_elem;
+}
+
+static void generator_destroy(void)
 {
 	if (mygen == NULL) return;
 	for (size_t i = 0; i < mygen->k; ++i)
