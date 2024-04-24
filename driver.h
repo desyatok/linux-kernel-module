@@ -19,4 +19,3 @@ static uint8_t get_pseudorandom_byte(void);
 static void generator_shift_left(FieldMember *);
 
 #endif // MYDRIVER_H
-

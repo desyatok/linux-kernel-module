@@ -36,4 +36,3 @@ int main(void)
     close(dev);
 	return 0;
 }
-

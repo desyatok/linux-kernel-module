@@ -11,7 +11,7 @@
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("desyatok");
-MODULE_DESCRIPTION("A sample driver");
+MODULE_DESCRIPTION("A pseudorandom number generation module");
 
 #define SUCCESS 0
 #define DEVICE_NAME "myrandom"
@@ -66,10 +66,7 @@ static void __exit my_exit(void)
 
 static int device_open(struct inode *inode, struct file *file) 
 {
-	if (atomic_cmpxchg(&already_open, DEV_NOT_USED, DEV_EXCLUSIVE_OPEN)) 
-	{
-		return -EBUSY;
-	}
+	if (atomic_cmpxchg(&already_open, DEV_NOT_USED, DEV_EXCLUSIVE_OPEN)) return -EBUSY;
 
 	pr_info("Successfully opened a device\n");
 	try_module_get(THIS_MODULE);
@@ -85,11 +82,10 @@ static int device_release(struct inode *inode, struct file *file)
 	return SUCCESS;
 }
 
-// буфер должен передаваться в следующем формате k c a_0 .. a_k-1 x_0 .. x_k-1 без пробелов (!)
+// буфер должен передаваться в следующем формате k c a_0 .. a_k-1 x_0 .. x_k-1 без пробелов
 static ssize_t device_write(struct file *file, const char __user *buffer, size_t count, loff_t *offset)
 {
 	if (mygen != NULL)
-	
 	{
 		generator_destroy();
 	}
@@ -108,8 +104,6 @@ static ssize_t device_write(struct file *file, const char __user *buffer, size_t
 	}
 	bytes_written++;
 
-	pr_info("k written is %d", mygen->k);
-
 	err = get_user(byte, buffer++);
 	if (err != 0) 
 	{
@@ -125,7 +119,6 @@ static ssize_t device_write(struct file *file, const char __user *buffer, size_t
 		return -ENOMEM;
 	}
 	bytes_written++;
-	pr_info("c written is %d", byte);
 
 	mygen->a = kmalloc(mygen->k * sizeof(FieldMember *), GFP_KERNEL);
 	mygen->x = kmalloc(mygen->k * sizeof(FieldMember *), GFP_KERNEL);
@@ -146,8 +139,6 @@ static ssize_t device_write(struct file *file, const char __user *buffer, size_t
 			return -EFAULT;
 		}
 		bytes_written++;
-
-		pr_info("a[%lu] is %d", i, byte);
 
 		mygen->a[i] = uint8_to_ff(byte);
 		if (mygen->a[i] == NULL)
@@ -170,8 +161,6 @@ static ssize_t device_write(struct file *file, const char __user *buffer, size_t
 		}
 		bytes_written++;
 
-		pr_info("x[%lu] is %d", i, byte);
-
 		mygen->x[i] = uint8_to_ff(byte);
 		if (mygen->x[i] == NULL)
 		{
@@ -182,26 +171,13 @@ static ssize_t device_write(struct file *file, const char __user *buffer, size_t
 
 	}
 
-	pr_info("%ld", bytes_written);
 	return bytes_written + 1;
 }
 
-static void generator_info(void)
-{
-	pr_info("generator values are:");
-	for (size_t i = 0; i < mygen->k; ++i)
-	{
-		pr_info("x[%lu] is %d", i, ff_to_uint8(mygen->x[i]));
-	}
-}
-
-// количество запрашиваемых псевдослучайных чисел равно count (????????)
 static ssize_t device_read(struct file *file, char __user *buffer, size_t count, loff_t *offset)
 {
 	if (mygen == NULL) return -EPERM;
-	if (count == 0) return -EINVAL;
 	ssize_t bytes_read = 0;
-	pr_info("%lu bytes to generate", count);
 	int err = 0;
 	for (size_t j = 0; j < count; ++j)
 	{
@@ -210,7 +186,6 @@ static ssize_t device_read(struct file *file, char __user *buffer, size_t count,
 		err = put_user(byte, buffer++);
 		if (err != 0) return -EFAULT;
 		bytes_read++;
-		generator_info();
 	}
 	
 	return bytes_read;
@@ -261,4 +236,3 @@ static void generator_destroy(void)
 
 module_init(my_init);
 module_exit(my_exit);
-
